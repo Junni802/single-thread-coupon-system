@@ -14,23 +14,23 @@ public class CouponService {
   private final Object couponInsertLock = new Object();
 
   private final CouponRepository couponRepository;
+
   public CouponService(CouponRepository couponRepository) {
     this.couponRepository = couponRepository;
   }
 
-  public void saveCoupon(long userId, IssueCouponRequestDto request) {
+  public synchronized void saveCoupon(long userId, IssueCouponRequestDto request) {
     List<Coupon> couponList = couponRepository.findByUserId(userId);
 
     boolean match = couponList.stream().anyMatch(m -> m.getType() == request.getType());
 
+    // 쿠폰이 이미 존재하는가?
     if (match) {
       throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "이미 발급된 쿠폰입니다.");
     }
 
     Coupon coupon = new Coupon(userId, request.getType());
-    synchronized (couponInsertLock) {
-      couponRepository.insert(coupon);
-    };
+    couponRepository.insert(coupon);
   }
 
 }
